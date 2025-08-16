@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "dyno-ctl",
+    "dyno-api",
+    "dyno-coordinator",
+    "dyno-lib",
+    "dyno-adm",
+    "workers/dyno-worker-aws",
+    "workers/dyno-worker-docker",
+    "workers/dyno-worker-kubernetes",
+    "workers/dyno-worker-linux",
+    "workers/dyno-worker-misc",
+    "workers/dyno-worker-postgres",
+    "workers/dyno-worker-windows"
+]
+resolver = "2"
