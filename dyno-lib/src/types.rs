@@ -1,0 +1,80 @@
+use std::collections::HashMap;
+
+use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Workflow {
+    pub name: String,
+    pub namespace: String,
+    pub labels: HashMap<String,String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Task {
+    pub name: String,
+    pub namespace: String,
+    pub target: Vec<Target>,
+    pub children: Vec<String>,
+    pub labels: HashMap<String,String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Step {
+    pub name: String,
+    pub namespace: String,
+    pub action: String,
+    pub args: Args,
+    pub labels: HashMap<String,String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Args {
+    Value(String),
+    Map(HashMap<String, Args>),
+    List(Vec<Args>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Execution {
+    pub id: u32,
+    pub user: u32,
+    pub status: ExecutionStatus,
+    pub triggered_at: DateTime<Utc>,
+    pub finished_at: DateTime<Utc>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ExecutionStatus {
+    Triggered,
+    Scheduling,
+    Running,
+    Succeeded,
+    Retrying,
+    Failed
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Target {
+    pub name: String,
+    pub namsepace: String,
+    pub identifier: String,
+    pub transport: TransportMode,
+    pub labels: HashMap<String,String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TransportMode {
+    SSH,
+    WINRM,
+    HTTP2,
+    GRPC,
+    DOCKER,
+    KUBERNETES,
+    AWS
+}
