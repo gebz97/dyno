@@ -807,6 +807,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "uuid",
@@ -824,6 +825,9 @@ dependencies = [
  "chrono",
  "petgraph 0.8.2",
  "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
 ]
 
 [[package]]

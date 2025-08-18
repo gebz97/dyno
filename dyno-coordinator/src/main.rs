@@ -26,14 +26,14 @@ async fn main() -> Result<(), Error> {
         //.context("Failed to connect to AMQP")?;
 
     // 4. Instantiate Registry
-    let registry_handle = registry::init(&config)
-        .await
-        .context("Failed to initialize Registry")?;
+    // let registry_handle = registry::init(&config)
+    //     .await
+    //     .context("Failed to initialize Registry")?;
 
-    println!("All dependencies initialized. Starting scheduler...");
+    // println!("All dependencies initialized. Starting scheduler...");
 
-    // 5. Start the scheduler (infinite loop)
-    scheduler::start(&config, &etcd_client, &amqp_client, &registry_handle).await?;
+    // // 5. Start the scheduler (infinite loop)
+    // scheduler::start(&config, &etcd_client, &amqp_client, &registry_handle).await?;
 
     // Normally never reached unless scheduler exits
     Ok(())

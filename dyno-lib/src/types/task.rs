@@ -9,13 +9,12 @@ use crate::types::step::Step;
 pub struct Task {
     pub name: String,
     pub namespace: String,
-    pub target: Vec<Target>,
+    pub targets: Vec<Target>,
     pub steps: Vec<Step>,
     pub children: Vec<String>,
     pub labels: HashMap<String,String>,
     pub tags: Vec<String>,
 }
-
 
 impl Task {
     pub fn print_stuff() {}
