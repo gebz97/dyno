@@ -2,19 +2,12 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::types::args::Args;
+use crate::types::execution::ExecutionStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
     pub name: String,
     pub namespace: String,
-    pub action: String,
-    pub args: Args,
-    pub labels: HashMap<String,String>,
-    pub tags: Vec<String>,
-}
-
-pub struct StepSpec {
     pub qualifier: String,
     pub action: String,
     pub args: String,
@@ -39,4 +32,11 @@ pub struct StepSpec {
     pub register: String,
     pub labels: HashMap<String,String>,
     pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepState {
+    pub qualifier: String,
+    pub status: ExecutionStatus,
+    pub retries: u32    
 }

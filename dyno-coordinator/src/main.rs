@@ -1,5 +1,7 @@
 use anyhow::{Context, Error};
 
+use crate::registry::Registry;
+
 mod amqp;
 mod cli;
 mod config;
@@ -15,20 +17,18 @@ async fn main() -> Result<(), Error> {
         .expect("Invalid arguments");
 
     // 2. Connect to Etcd
-    let mut etcd_client = etcd::connect(&config)
+    let mut _etcd_client = etcd::connect(&config)
         .await
         .context("Failed to connect to Etcd")?;
 
     // 3. Connect to AMQP
-    let amqp_client = amqp::connect(&config)
+    let _amqp_client = amqp::connect(&config)
         .await;
         //.await
         //.context("Failed to connect to AMQP")?;
 
     // 4. Instantiate Registry
-    // let registry_handle = registry::init(&config)
-    //     .await
-    //     .context("Failed to initialize Registry")?;
+    let _registry_handle = Registry::init();
 
     // println!("All dependencies initialized. Starting scheduler...");
 

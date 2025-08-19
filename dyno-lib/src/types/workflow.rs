@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::types::task::Task;
+use crate::types::{execution::ExecutionStatus, task::Task};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Workflow {
@@ -16,6 +16,13 @@ pub struct Workflow {
     pub deletion_timestamp: DateTime<Utc>,
     pub tags: Vec<String>,
     pub labels: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkflowState {
+    pub qualifier: String,
+    pub status: ExecutionStatus,
+    pub retries: u32
 }
 
 #[derive(Debug, Error)]
@@ -112,6 +119,7 @@ mod tests {
                     namespace: ns.clone(),
                     labels: labels.clone(),
                     tags: tags.clone(),
+                    qualifier: "".into(),
                 },
                 Task {
                     name: "task2".into(),
@@ -121,6 +129,7 @@ mod tests {
                     namespace: ns,
                     labels,
                     tags,
+                    qualifier: "".into(),
                 },
             ],
         }
@@ -144,6 +153,7 @@ mod tests {
             namespace: wf.namespace.clone(),
             labels: wf.labels.clone(),
             tags: wf.tags.clone(),
+            qualifier: "".into(),
         });
         let res = wf.validate();
         assert!(matches!(res, Err(WorkflowError::DuplicateTask(_))));

@@ -13,10 +13,10 @@ pub struct Execution {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionStatus {
-    Triggered,
-    Scheduling,
-    Running,
-    Succeeded,
-    Retrying,
-    Failed
+    Pending(String),
+    Scheduled(String),
+    Running(String),
+    Succeeded(String),
+    Failed(String),
+    Retrying(String)
 }
