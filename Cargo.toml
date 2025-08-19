@@ -12,5 +12,5 @@ members = [
     "workers/misc",
     "workers/postgres",
     "workers/windows"
-, "workers/mock"]
+, "workers/mock", "workers/base-worker"]
 resolver = "2"

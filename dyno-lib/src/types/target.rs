@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Target {
     pub name: String,
-    pub namsepace: String,
+    pub namespace: String,
     pub identifier: String,
     pub transport: TransportMode,
     pub labels: HashMap<String,String>,

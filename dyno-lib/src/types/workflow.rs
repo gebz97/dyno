@@ -13,7 +13,7 @@ pub struct Workflow {
     pub tasks: Vec<Task>,
     pub uid: String,
     pub creation_timestamp: DateTime<Utc>,
-    pub deletion_timestamp: DateTime<Utc>,
+    pub deletion_timestamp: Option<DateTime<Utc>>,
     pub tags: Vec<String>,
     pub labels: HashMap<String, String>,
 }
@@ -107,7 +107,7 @@ mod tests {
             namespace: ns.clone(),
             uid: "1234".into(),
             creation_timestamp: Utc::now(),
-            deletion_timestamp: Utc::now(),
+            deletion_timestamp: None,
             tags: tags.clone(),
             labels: labels.clone(),
             tasks: vec![

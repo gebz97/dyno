@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use serde::{Serialize, Deserialize};
 
@@ -10,7 +10,7 @@ pub struct Step {
     pub namespace: String,
     pub qualifier: String,
     pub action: String,
-    pub args: String,
+    pub args: HashMap<String, String>,
     pub any_errors_fatal: bool,
     pub ignore_errors: bool,
     pub ignore_unreachable: bool,

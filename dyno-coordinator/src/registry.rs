@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use anyhow::Error;
 use std::{
     collections::HashMap,
@@ -5,9 +6,9 @@ use std::{
 };
 
 pub struct Registry {
-    pub step_state_map: Arc<RwLock<HashMap<String, Arc<RwLock<String>>>>>,
-    pub task_state_map: Arc<RwLock<HashMap<String, Arc<RwLock<String>>>>>,
-    pub workflow_state_map: Arc<RwLock<HashMap<String, Arc<RwLock<String>>>>>,
+    pub step_state_map: Arc<RwLock<HashMap<String, String>>>,
+    pub task_state_map: Arc<RwLock<HashMap<String, String>>>,
+    pub workflow_state_map: Arc<RwLock<HashMap<String, String>>>,
 }
 
 impl Registry {
@@ -20,62 +21,29 @@ impl Registry {
     }
 
     pub fn update_step(&self, key: String, value: String) -> Result<(), Error> {
-        let map = self
-            .step_state_map
-            .read()
-            .map_err(|_| Error::msg("step_state_map poisoned"))?;
-        if let Some(val) = map.get(&key) {
-            let mut inner = val.write().map_err(|_| Error::msg("entry poisoned"))?;
-            *inner = value;
-            return Ok(());
-        }
-        drop(map); // release read lock before inserting
-
-        let mut mapw = self
+        let mut map = self
             .step_state_map
             .write()
             .map_err(|_| Error::msg("step_state_map poisoned"))?;
-        mapw.insert(key, Arc::new(RwLock::new(value)));
+        map.insert(key, value);
         Ok(())
     }
 
     pub fn update_task(&self, key: String, value: String) -> Result<(), Error> {
-        let map = self
-            .task_state_map
-            .read()
-            .map_err(|_| Error::msg("task_state_map poisoned"))?;
-        if let Some(val) = map.get(&key) {
-            let mut inner = val.write().map_err(|_| Error::msg("entry poisoned"))?;
-            *inner = value;
-            return Ok(());
-        }
-        drop(map);
-
-        let mut mapw = self
+        let mut map = self
             .task_state_map
             .write()
             .map_err(|_| Error::msg("task_state_map poisoned"))?;
-        mapw.insert(key, Arc::new(RwLock::new(value)));
+        map.insert(key, value);
         Ok(())
     }
 
     pub fn update_workflow(&self, key: String, value: String) -> Result<(), Error> {
-        let map = self
-            .workflow_state_map
-            .read()
-            .map_err(|_| Error::msg("workflow_state_map poisoned"))?;
-        if let Some(val) = map.get(&key) {
-            let mut inner = val.write().map_err(|_| Error::msg("entry poisoned"))?;
-            *inner = value;
-            return Ok(());
-        }
-        drop(map);
-
-        let mut mapw = self
+        let mut map = self
             .workflow_state_map
             .write()
             .map_err(|_| Error::msg("workflow_state_map poisoned"))?;
-        mapw.insert(key, Arc::new(RwLock::new(value)));
+        map.insert(key, value);
         Ok(())
     }
 }
@@ -104,14 +72,13 @@ mod tests {
                 "step2".to_string()
             };
             let handle = thread::spawn(move || {
-                reg_clone
-                    .update_step(key.clone(), {
-                        let map = reg_clone.step_state_map.read().unwrap();
-                        let val = map.get(&key).unwrap();
-                        let v = val.read().unwrap();
-                        (v.parse::<i32>().unwrap() + 1).to_string()
-                    })
-                    .unwrap();
+                // read current value
+                let current = {
+                    let map = reg_clone.step_state_map.read().unwrap();
+                    map.get(&key).unwrap().clone()
+                };
+                let new_val = (current.parse::<i32>().unwrap() + 1).to_string();
+                reg_clone.update_step(key, new_val).unwrap();
             });
             handles.push(handle);
         }
@@ -121,8 +88,8 @@ mod tests {
         }
 
         let map = registry.step_state_map.read().unwrap();
-        let v1 = map.get("step1").unwrap().read().unwrap().clone();
-        let v2 = map.get("step2").unwrap().read().unwrap().clone();
+        let v1 = map.get("step1").unwrap().clone();
+        let v2 = map.get("step2").unwrap().clone();
         assert_eq!(v1, "5");
         assert_eq!(v2, "5");
     }
@@ -132,27 +99,23 @@ mod tests {
         let registry = Registry::init();
         registry.update_step("step1".into(), "0".into()).unwrap();
 
-        let inner = {
-            let map = registry.step_state_map.read().unwrap();
-            map.get("step1").unwrap().clone()
-        };
-
         let (tx, rx) = oneshot::channel();
 
-        let handle = tokio::task::spawn_blocking({
-            let inner = inner.clone();
-            move || {
-                let guard = inner.write().unwrap();
-                tx.send(()).unwrap();
-                std::thread::sleep(Duration::from_secs(3));
-                drop(guard);
-            }
+        // Hold the write lock on the map
+        let reg_clone = registry.step_state_map.clone();
+        let handle = tokio::task::spawn_blocking(move || {
+            let mut map = reg_clone.write().unwrap();
+            let entry = map.get_mut("step1").unwrap();
+            *entry = "locked".into();
+            tx.send(()).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
         });
 
         rx.await.unwrap();
 
+        // While the writer holds the lock, we can't read
         assert!(
-            inner.try_write().is_err(),
+            registry.step_state_map.try_read().is_err(),
             "Contender must not acquire lock while greedy holds it"
         );
 
@@ -167,21 +130,22 @@ mod tests {
 
         let barrier = Arc::new(Barrier::new(2));
 
+        // Greedy writer blocks map
         let reg_clone = Arc::clone(&registry);
         let barrier_clone = Arc::clone(&barrier);
         let greedy_handle = thread::spawn(move || {
-            let map = reg_clone.step_state_map.read().unwrap();
-            let step1 = map.get("step1").unwrap().clone();
-            drop(map);
-
-            let _guard = step1.write().unwrap();
+            let mut map = reg_clone.step_state_map.write().unwrap();
+            let entry = map.get_mut("step1").unwrap();
+            *entry = "0".into();
             barrier_clone.wait();
+            std::thread::sleep(Duration::from_secs(2));
         });
 
         let reg_clone2 = Arc::clone(&registry);
         let barrier_clone2 = Arc::clone(&barrier);
         let updater_handle = thread::spawn(move || {
             barrier_clone2.wait();
+            // Will block until greedy releases lock
             reg_clone2
                 .update_step("step2".into(), "1".into())
                 .unwrap();
@@ -191,8 +155,8 @@ mod tests {
         updater_handle.join().unwrap();
 
         let map = registry.step_state_map.read().unwrap();
-        let v1 = map.get("step1").unwrap().read().unwrap().clone();
-        let v2 = map.get("step2").unwrap().read().unwrap().clone();
+        let v1 = map.get("step1").unwrap().clone();
+        let v2 = map.get("step2").unwrap().clone();
         assert_eq!(v1, "0");
         assert_eq!(v2, "1");
     }
