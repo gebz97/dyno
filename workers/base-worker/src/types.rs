@@ -34,6 +34,8 @@ pub enum StepStatus {
     Succeeded,
     Failed(String),
     Skipped(String),
+    Ignored(String),
+    Retried(u32, String)
 }
 
 #[derive(Debug, thiserror::Error)]
