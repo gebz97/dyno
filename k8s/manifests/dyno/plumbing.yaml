@@ -1,0 +1,160 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:4-management
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        volumeMounts:
+        - mountPath: /var/lib/rabbitmq
+          name: data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey
+  namespace: dyno-dev
+spec:
+  serviceName: valkey
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      containers:
+      - name: valkey
+        image: valkey/valkey:latest
+        # args: ["--dir", "/opt/valkey/data", "--dbfilename", "dump.rdb", "--save", "900", "1", "--save", "300", "10", "--save", "60", "10000"]
+        command:
+          - "valkey-server"
+          - "--save"
+          - "60"
+          - "1"
+          - "--loglevel"
+          - "warning"
+          - "--dir"
+          - "/opt/valkey/data"
+          - "--dbfilename"
+          - "dump.rdb"
+        ports:
+        - containerPort: 6379
+          name: redis
+        volumeMounts:
+        - name: data
+          mountPath: /opt/valkey/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd
+spec:
+  serviceName: etcd
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.6.4
+        command:
+        - etcd
+        - --data-dir=/var/lib/etcd
+        - --advertise-client-urls=http://0.0.0.0:2379
+        - --listen-client-urls=http://0.0.0.0:2379
+        ports:
+        - containerPort: 2379
+        volumeMounts:
+        - mountPath: /var/lib/etcd
+          name: data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openbao
+spec:
+  serviceName: openbao
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openbao
+  template:
+    metadata:
+      labels:
+        app: openbao
+    spec:
+      containers:
+      - name: openbao
+        image: openbao/openbao:latest
+        args:
+          - "server"
+          - "-config=/etc/openbao/openbao.hcl"
+        ports:
+        - containerPort: 8200
+          name: http
+        volumeMounts:
+        - name: openbao-data
+          mountPath: /openbao/data
+        - name: openbao-config
+          mountPath: /etc/openbao
+      volumes:
+      - name: openbao-config
+        configMap:
+          name: openbao-config
+  volumeClaimTemplates:
+  - metadata:
+      name: openbao-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: local-path
+

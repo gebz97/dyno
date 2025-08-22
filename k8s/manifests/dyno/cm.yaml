@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-config
+data:
+  openbao.hcl: |
+    storage "file" {
+      path = "/openbao/data"
+    }
+
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = "true"
+    }
+
+    ui = true

@@ -1,0 +1,352 @@
+# ---------------------- Persistent Volumes ----------------------
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-rabbitmq
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 10Gi
+  accessModes: [ "ReadWriteOnce" ]
+  hostPath:
+    path: /opt/rabbitmq/data
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-valkey
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 10Gi
+  accessModes: [ "ReadWriteOnce" ]
+  hostPath:
+    path: /opt/valkey/data
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-etcd
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 10Gi
+  accessModes: [ "ReadWriteOnce" ]
+  hostPath:
+    path: /opt/etcd/data
+---
+apiVersion: v1  
+kind: PersistentVolume
+metadata:
+  name: pv-openbao-data
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 10Gi
+  accessModes: [ "ReadWriteOnce" ]
+  hostPath:
+    path: /opt/openbao/data
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-openbao-config
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 1Gi
+  accessModes: [ "ReadWriteOnce" ]
+  hostPath:
+    path: /opt/openbao/config
+
+# ---------------------- Persistent Volume Claims ----------------------
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-rabbitmq
+  namespace: dyno-dev
+spec:
+  storageClassName: ""
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-rabbitmq
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-valkey
+  namespace: dyno-dev
+spec:
+  storageClassName: ""
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-valkey
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-etcd
+  namespace: dyno-dev
+spec:
+  storageClassName: ""
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-etcd
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-openbao-data
+  namespace: dyno-dev
+spec:
+  storageClassName: ""
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-openbao-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-openbao-config
+  namespace: dyno-dev
+spec:
+  storageClassName: ""
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: pv-openbao-config
+
+# ---------------------- StatefulSets ----------------------
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: dyno-dev
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:4-management
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        volumeMounts:
+        - mountPath: /var/lib/rabbitmq
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pvc-rabbitmq
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey
+  namespace: dyno-dev
+spec:
+  serviceName: valkey
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      containers:
+      - name: valkey
+        image: valkey/valkey:latest
+        command:
+          - "valkey-server"
+          - "--save"
+          - "60"
+          - "1"
+          - "--loglevel"
+          - "warning"
+          - "--dir"
+          - "/opt/valkey/data"
+          - "--dbfilename"
+          - "dump.rdb"
+        ports:
+        - containerPort: 6379
+          name: redis
+        volumeMounts:
+        - name: data
+          mountPath: /opt/valkey/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pvc-valkey
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd
+  namespace: dyno-dev
+spec:
+  serviceName: etcd
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.6.4
+        command:
+        - etcd
+        - --data-dir=/var/lib/etcd
+        - --advertise-client-urls=http://0.0.0.0:2379
+        - --listen-client-urls=http://0.0.0.0:2379
+        ports:
+        - containerPort: 2379
+        volumeMounts:
+        - mountPath: /var/lib/etcd
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pvc-etcd
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openbao
+  namespace: dyno-dev
+spec:
+  serviceName: openbao
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openbao
+  template:
+    metadata:
+      labels:
+        app: openbao
+    spec:
+      containers:
+      - name: openbao
+        image: openbao/openbao:latest
+        args:
+          - "server"
+          - "-config=/etc/openbao/openbao.hcl"
+        ports:
+        - containerPort: 8200
+          name: http
+        volumeMounts:
+        - name: data
+          mountPath: /openbao/data
+        - name: config
+          mountPath: /etc/openbao
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pvc-openbao-data
+      - name: config
+        persistentVolumeClaim:
+          claimName: pvc-openbao-config
+
+# ---------------------- ConfigMap ----------------------
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-config
+data:
+  openbao.hcl: |
+    storage "file" {
+      path = "/openbao/data"
+    }
+
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = "true"
+    }
+
+    ui = true
+# ---------------------- Services ----------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: dyno-dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: rabbitmq
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 15672
+    targetPort: 15672
+    name: management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey
+  namespace: dyno-dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: valkey
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+  namespace: dyno-dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: etcd
+  ports:
+  - port: 2379
+    targetPort: 2379
+    name: client
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openbao
+  namespace: dyno-dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: openbao
+  ports:
+  - port: 8200
+    targetPort: 8200
+    name: http

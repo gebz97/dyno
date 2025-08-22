@@ -5,12 +5,15 @@ members = [
     "dyno-coordinator",
     "dyno-lib",
     "dyno-adm",
+    "migration",
     "workers/aws",
     "workers/docker",
     "workers/kubernetes",
     "workers/linux",
     "workers/misc",
     "workers/postgres",
-    "workers/windows"
-, "workers/mock", "workers/base-worker"]
+    "workers/windows",
+    "workers/mock",
+    "workers/base-worker",
+]
 resolver = "2"
