@@ -1234,7 +1234,11 @@ version = "0.1.0"
 name = "dyno-worker-linux"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "ssh2",
+ "tokio",
+ "vaultrs",
 ]
 
 [[package]]
