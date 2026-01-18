@@ -1,0 +1,6 @@
+[workspace]
+# Define which directories contain crates
+members = ["bin/dyno","bin/dynoctl", "bin/modules/linux/apt_repo", "bin/modules/linux/blockinfile", "bin/modules/linux/command", "bin/modules/linux/copy", "bin/modules/linux/cron", "bin/modules/linux/debug", "bin/modules/linux/fail", "bin/modules/linux/fetch", "bin/modules/linux/file", "bin/modules/linux/find", "bin/modules/linux/get_url", "bin/modules/linux/hostname", "bin/modules/linux/lineinfile", "bin/modules/linux/package", "bin/modules/linux/rpm_repo", "bin/modules/linux/service", "bin/modules/linux/setup", "bin/modules/linux/shell", "bin/modules/linux/systemd_unit",
+    "lib",
+]
+resolver = "3"
